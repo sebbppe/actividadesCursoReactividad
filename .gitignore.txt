@@ -1,0 +1,6 @@
+### Gradle Patch ###
+**/build/
+.gradle/
+**/gradle/
+.idea/
+*.iml
