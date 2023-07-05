@@ -49,8 +49,11 @@ public class DojoStreamTest {
     @Test
     void clubConElMejorJugador(){
         List<Player> list = CsvUtilFile.getPlayers();
-        BiPredicate<Player,Player> bestPlayer=(P1,P2)-> (P1.getWinners()/P1.getGames())>(P2.getWinners()/P2.getGames());
-        list.stream().filter(player -> player.getWinners()/player.getGames())
+        list.stream().max(Comparator.comparing(player -> player.getWinners()/ player.getGames()))
+                .ifPresent(player -> {
+                    System.out.println("Club con mejor jugador: "+player.getClub());
+                    System.out.println(player);
+                });
     }
 
     @Test
