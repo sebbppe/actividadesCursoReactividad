@@ -4,6 +4,7 @@ package com.example.demo;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 public class DojoStreamTest {
@@ -48,6 +49,8 @@ public class DojoStreamTest {
     @Test
     void clubConElMejorJugador(){
         List<Player> list = CsvUtilFile.getPlayers();
+        BiPredicate<Player,Player> bestPlayer=(P1,P2)-> (P1.getWinners()/P1.getGames())>(P2.getWinners()/P2.getGames());
+        list.stream().filter(player -> player.getWinners()/player.getGames())
     }
 
     @Test
