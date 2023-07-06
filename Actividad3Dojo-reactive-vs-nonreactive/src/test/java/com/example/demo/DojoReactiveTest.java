@@ -3,9 +3,11 @@ package com.example.demo;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.GroupedFlux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DojoReactiveTest {
 
@@ -19,17 +21,8 @@ public class DojoReactiveTest {
     void jugadoresMayoresA35() {
         List<Player> list = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(list);
-
-        observable.filter(jugador -> jugador.getAge() > 35)
-                .collectList()
-                .map(jugadorList -> {
-                    long size = jugadorList.size();
-                    Player primer = jugadorList.get(0);
-                    Player ultimo = jugadorList.get((int) (size - 1));
-                    System.out.println("Size: " + size);
-                    System.out.println("Primer jugador: \n"+ primer + "\nSegundo jugador\n" + ultimo);
-                    return jugadorList;
-                }).subscribe();
+        observable.filter(player -> player.getAge()>35)
+                .subscribe(System.out::println);
     }
 
 
@@ -37,24 +30,13 @@ public class DojoReactiveTest {
     void jugadoresMayoresA35SegunClub(){
         List<Player> readCsv = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(readCsv);
-
-        observable.filter(player -> player.getAge() > 35)
-                .groupBy(Player::getClub)
-                .flatMap(groupedFlux -> groupedFlux
-                        .collectList()
-                        .map(list -> {
-                            Map<String, List<Player>> map = new HashMap<>();
-                            map.put(groupedFlux.key(), list);
-                            return map;
-                        }))
-                .subscribe(map -> {
-                    map.forEach((key, value) -> {
-                        System.out.println("\n");
-                        System.out.println(key + ": ");
-                        value.forEach(System.out::println);
-                    });
+        observable.filter(player -> player.getAge()>35)
+                .collect(Collectors.groupingBy(Player::getClub)).subscribe(stringListMap -> {
+                    stringListMap.forEach(((s, players) -> {
+                        System.out.println("                      Club: "+s);
+                        players.stream().forEach(System.out::println);
+                    }));
                 });
-
     }
 
 
@@ -62,100 +44,66 @@ public class DojoReactiveTest {
     void mejorJugadorConNacionalidadFrancia(){
         List<Player> readCsv = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(readCsv);
-
         observable.filter(player -> player.getNational().equals("France"))
-                .distinct()
-                .reduce((p1, p2) -> ((p1.getWinners()/p1.getGames())>(p2.getWinners()/p2.getGames())?p1:p2))
-                .subscribe(System.out::println);
+                .collect(Collectors.maxBy(Comparator.comparing(player -> player.getWinners()/player.getGames())))
+                .map(Optional::get).subscribe(System.out::println);
     }
 
     @Test
     void clubsAgrupadosPorNacionalidad(){
         List<Player> readCsv = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(readCsv);
+        observable.groupBy(Player::getNational)
+                .flatMap(groupedFlux -> groupedFlux.collectList()
+                            .map(list->{
+                                Map<String,Set<String>> clubsByNac=new HashMap<>();
+                                clubsByNac.put(groupedFlux.key(),list.stream().map(Player::getClub).collect(Collectors.toSet()));
+                                return clubsByNac;
+                            })
+                ).subscribe(stringSetMap -> stringSetMap.forEach((nacionalidad, clubs) -> {
+                    System.out.println("              Nacionalidad: "+nacionalidad);
+                    clubs.forEach(System.out::println);
+                }));
 
-        observable
-                .groupBy(Player::getNational)
-                .flatMap(groupedFlux -> groupedFlux
-                        .collectList()
-                        .map(list -> {
-                            List<String> clubs = new ArrayList<>();
-                            list.forEach(element -> clubs.add(element.getClub()));
-                            Map<String, List<String>> map = new HashMap<>();
-                            map.put(groupedFlux.key(), clubs);
-                            return map;
-                        }))
-                .subscribe(map -> {
-                    map.forEach((key, value) -> {
-                        System.out.println("\n");
-                        System.out.println(key + ": ");
-                        value.forEach(System.out::println);
-                    });
-                });
     }
 
     @Test
     void clubConElMejorJugador(){
         List<Player> readCsv = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(readCsv);
+        observable.collect(Collectors.maxBy(Comparator.comparing(player -> player.getWinners()/player.getGames()))).map(player -> {
+            return player.map(value -> "Club con mejor jugador: " + value.getClub()+", jugador: "+value.getName()).orElse("No se encontró");
+        }).subscribe(System.out::println);
 
-        observable
-                .reduce((p1, p2) -> ((p1.getWinners()/p1.getGames())>(p2.getWinners()/p2.getGames())?p1:p2))
-                .subscribe(player -> System.out.println(player.getClub()));
-    }
-
-    @Test
-    void clubConElMejorJugador2() {
-        List<Player> readCsv = CsvUtilFile.getPlayers();
-        Flux<Player> observable = Flux.fromIterable(readCsv);
-
-        observable
-                .reduce((p1, p2) -> ((p1.getWinners()/p1.getGames())>=(p2.getWinners()/p2.getGames())?p1:p2))
-                .subscribe(player -> System.out.println(player.getClub()));
     }
 
     @Test
     void ElMejorJugador() {
         List<Player> readCsv = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(readCsv);
-
         observable
-                .reduce((p1, p2) -> ((p1.getWinners()/p1.getGames())>(p2.getWinners()/p2.getGames())?p1:p2))
-                .subscribe(System.out::println);
+                .collect(Collectors.maxBy(Comparator.comparing(player -> player.getWinners()/player.getGames())))
+                .map(Optional::get).subscribe(System.out::println);
     }
 
-    @Test
-    void ElMejorJugador2() {
-        List<Player> readCsv = CsvUtilFile.getPlayers();
-        Flux<Player> observable = Flux.fromIterable(readCsv);
-
-        observable
-                .reduce((p1, p2) -> ((p1.getWinners()/p1.getGames())>=(p2.getWinners()/p2.getGames())?p1:p2))
-                .subscribe(System.out::println);
-    }
 
     @Test
     void mejorJugadorSegunNacionalidad(){
         List<Player> readCsv = CsvUtilFile.getPlayers();
         Flux<Player> observable = Flux.fromIterable(readCsv);
-
-        observable
-                .groupBy(Player::getNational)
-                .flatMap(groupedFlux -> groupedFlux
-                        .collectList()
-                        .map(list -> {
-                            Player best = list.stream().reduce((p1, p2)->((p1.getWinners()/p1.getGames())>=(p2.getWinners()/p2.getGames())?p1:p2)).get();
-                            Map<String, Player> map = new HashMap<>();
-                            map.put(groupedFlux.key(), best);
-                            return map;
-                        }))
-                .subscribe(map -> {
-                   map.forEach((k, v) -> {
-                       System.out.println("\n");
-                       System.out.println(k + ": ");
-                       System.out.println(v);
-                   });
-                });
+        observable.groupBy(Player::getNational).flatMap(stringPlayerGroupedFlux ->
+            stringPlayerGroupedFlux
+                    .collectList()
+                    .map(players -> {
+                        Map<String, Player> bestPlayers = new HashMap<>();
+                        bestPlayers.put(stringPlayerGroupedFlux.key()
+                                , players.stream()
+                                        .max(Comparator.comparing(player -> player.getWinners() / player.getGames())).get());
+                        return bestPlayers;
+                    })
+            ).subscribe(stringPlayerMap ->
+            stringPlayerMap.forEach((nacionalidad, player) -> System.out.println("Mejor jugador de " + nacionalidad + ": " + player))
+        );
     }
 
 

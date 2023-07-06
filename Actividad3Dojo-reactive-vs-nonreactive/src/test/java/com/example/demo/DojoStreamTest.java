@@ -4,7 +4,6 @@ package com.example.demo;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
 public class DojoStreamTest {
@@ -42,7 +41,8 @@ public class DojoStreamTest {
         List<Player> list = CsvUtilFile.getPlayers();
         list.stream().collect(Collectors.groupingBy(Player::getNational)).forEach((s, players) -> {
             System.out.println("                        Nacionalidad: "+s);
-            players.stream().collect(Collectors.groupingBy(Player::getClub)).forEach(((s1, players1) -> System.out.println(s1)));
+            players.stream().collect(Collectors.groupingBy(Player::getClub))
+                    .forEach(((s1, players1) -> System.out.println(s1)));
         });
     }
 
@@ -59,11 +59,17 @@ public class DojoStreamTest {
     @Test
     void ElMejorJugador(){
         List<Player> list = CsvUtilFile.getPlayers();
+        list.stream().max(Comparator.comparing(player -> player.getWinners()/player.getGames()))
+                .ifPresent(System.out::println);
     }
 
     @Test
     void mejorJugadorSegunNacionalidad(){
         List<Player> list = CsvUtilFile.getPlayers();
+        list.stream().collect(Collectors.groupingBy(Player::getNational)).forEach((s, players) -> {
+            players.stream().max(Comparator.comparing(player -> player.getWinners()/player.getGames()))
+                    .ifPresent(player -> System.out.println("Mejor jugador de "+s+"\n"+player));
+        });
     }
 
 
