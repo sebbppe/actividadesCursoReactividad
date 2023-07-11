@@ -32,4 +32,9 @@ public class ToDoService {
                 .switchIfEmpty(Mono.error(new IllegalArgumentException("El registro no esta en la base de datos")))
                 .flatMap(task -> repository.save(ToDo.from(newTask, id)));
     }
+    public Mono<String> deleteTask(String id){
+        return repository.findById(id)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("El registro no esta en la base de datos")))
+                .flatMap(task->repository.delete(task)).thenReturn("Registro eliminado");
+    }
 }
